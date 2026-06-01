@@ -2,7 +2,9 @@ from typing import List
 
 from fastapi import APIRouter, Query
 
+from app.schemas.analytics import RankingItem
 from app.schemas.catalog import TermItem, TopItem
+from app.services.analytics_service import get_ranking
 from app.services.catalog_service import (
     get_top_classes,
     get_top_relations,
@@ -11,6 +13,12 @@ from app.services.catalog_service import (
 )
 
 router = APIRouter(tags=["analytics"])
+
+
+@router.get("/ranking", response_model=List[RankingItem])
+def read_ranking(limit: int = Query(100, ge=1, le=500)) -> List[RankingItem]:
+    """Retorna ranking de termos ordenados por future_score (maturidade e impacto)."""
+    return get_ranking(limit=limit)
 
 
 @router.get("/classes/top", response_model=List[TopItem])
