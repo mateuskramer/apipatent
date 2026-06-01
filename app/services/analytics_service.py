@@ -309,12 +309,11 @@ def get_ranking(limit: int = 100) -> List[dict]:
                COALESCE(d.density, 0)::INT AS density,
                COALESCE(f.fusion, 0)::INT AS fusion,
                0.0::FLOAT AS shift,
-               ROUND(
+               ROUND((
                    LEAST(COALESCE(g.growth, 0.0), 100.0) * 0.35 +
                    LEAST(COALESCE(f.fusion, 0) * 5, 100.0) * 0.25 +
-                   LEAST(COALESCE(d.density, 0), 100.0) * 0.20,
-                   2
-               )::FLOAT AS future_score
+                   LEAST(COALESCE(d.density, 0), 100.0) * 0.20
+               )::numeric, 2)::FLOAT AS future_score
         FROM top_terms tt
         LEFT JOIN growth_data g ON g.id = tt.id
         LEFT JOIN density_data d ON d.id = tt.id
