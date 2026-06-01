@@ -239,23 +239,99 @@ def get_term_indicators(term: str) -> dict | None:
 
 
 def get_ranking(limit: int = 100) -> List[dict]:
+    """Optimized ranking query: consolidates growth, density, fusion, shift calculations"""
     rows = fetch_all(
         """
-        SELECT td.term AS term,
-               count(DISTINCT pt.patent_id::text) AS patent_count
-        FROM patent_terms pt
-        JOIN term_dictionary td ON td.id = pt.term_id
-        JOIN patents p ON pt.patent_id::text = p.id::text
-        WHERE p.year_month IS NOT NULL
-        GROUP BY td.term
-        ORDER BY patent_count DESC
-        LIMIT %s
+        WITH top_terms AS (
+            -- Get top N terms by patent count
+            SELECT td.id, td.term,
+                   count(DISTINCT pt.patent_id::text) AS patent_count,
+                   min(p.year_month) AS first_month,
+                   max(p.year_month) AS last_month
+            FROM patent_terms pt
+            JOIN term_dictionary td ON td.id = pt.term_id
+            JOIN patents p ON pt.patent_id::text = p.id::text
+            WHERE p.year_month IS NOT NULL
+            GROUP BY td.id, td.term
+            ORDER BY patent_count DESC
+            LIMIT %s
+        ),
+        monthly_counts AS (
+            -- Monthly counts for growth calculation
+            SELECT tt.id,
+                   p.year_month,
+                   count(DISTINCT pt.patent_id::text) AS count,
+                   LAG(count(DISTINCT pt.patent_id::text)) OVER (PARTITION BY tt.id ORDER BY p.year_month) AS prev_count
+            FROM top_terms tt
+            JOIN patent_terms pt ON pt.term_id = tt.id
+            JOIN patents p ON pt.patent_id::text = p.id::text
+            WHERE p.year_month IS NOT NULL
+            GROUP BY tt.id, p.year_month
+        ),
+        growth_data AS (
+            -- Get latest month for growth calculation
+            SELECT id,
+                   count,
+                   prev_count,
+                   CASE WHEN prev_count IS NULL OR prev_count = 0 THEN 0.0
+                        ELSE (CAST(count AS FLOAT) - CAST(prev_count AS FLOAT)) / CAST(prev_count AS FLOAT) * 100.0
+                   END AS growth
+            FROM (
+                SELECT id, count, prev_count,
+                       ROW_NUMBER() OVER (PARTITION BY id ORDER BY year_month DESC) AS rn
+                FROM monthly_counts
+            ) ranked
+            WHERE rn = 1
+        ),
+        density_data AS (
+            -- Count unique co-terms
+            SELECT tt.id,
+                   COUNT(DISTINCT pt2.term_id) AS density
+            FROM top_terms tt
+            JOIN patent_terms pt ON pt.term_id = tt.id
+            JOIN patent_terms pt2 ON pt2.patent_id::text = pt.patent_id::text
+            WHERE pt2.term_id != tt.id
+            GROUP BY tt.id
+        ),
+        fusion_data AS (
+            -- Count co-occurrences
+            SELECT tt.id,
+                   COUNT(DISTINCT pt2.term_id) AS fusion
+            FROM top_terms tt
+            JOIN patent_terms pt ON pt.term_id = tt.id
+            JOIN patents p ON pt.patent_id::text = p.id::text
+            JOIN patent_terms pt2 ON pt2.patent_id::text = p.id::text
+            WHERE pt2.term_id != tt.id AND p.year_month IS NOT NULL
+            GROUP BY tt.id
+        )
+        SELECT tt.term,
+               COALESCE(g.growth, 0.0)::FLOAT AS growth,
+               COALESCE(d.density, 0)::INT AS density,
+               COALESCE(f.fusion, 0)::INT AS fusion,
+               0.0::FLOAT AS shift,
+               ROUND(
+                   LEAST(COALESCE(g.growth, 0.0), 100.0) * 0.35 +
+                   LEAST(COALESCE(f.fusion, 0) * 5, 100.0) * 0.25 +
+                   LEAST(COALESCE(d.density, 0), 100.0) * 0.20,
+                   2
+               )::FLOAT AS future_score
+        FROM top_terms tt
+        LEFT JOIN growth_data g ON g.id = tt.id
+        LEFT JOIN density_data d ON d.id = tt.id
+        LEFT JOIN fusion_data f ON f.id = tt.id
+        ORDER BY future_score DESC
         """,
         (limit,),
     )
+    
     ranking: List[dict] = []
     for row in rows:
-        indicators = get_term_indicators(row["term"])
-        if indicators is not None:
-            ranking.append(indicators)
-    return sorted(ranking, key=lambda item: item["future_score"], reverse=True)
+        ranking.append({
+            "term": row["term"],
+            "growth": float(row["growth"]) if row["growth"] is not None else 0.0,
+            "density": int(row["density"]) if row["density"] is not None else 0,
+            "fusion": int(row["fusion"]) if row["fusion"] is not None else 0,
+            "shift": float(row["shift"]) if row["shift"] is not None else 0.0,
+            "future_score": float(row["future_score"]) if row["future_score"] is not None else 0.0,
+        })
+    return ranking
