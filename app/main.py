@@ -15,7 +15,10 @@ from app.routes.chat import router as chat_router
 
 
 
+from fastapi.middleware.gzip import GZipMiddleware
+
 app = FastAPI(title="Patent AI Lab API", version="0.1.0")
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
