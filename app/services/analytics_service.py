@@ -334,3 +334,16 @@ def get_ranking(limit: int = 100) -> List[dict]:
             "future_score": float(row["future_score"]) if row["future_score"] is not None else 0.0,
         })
     return ranking
+
+
+def get_db_stats() -> dict:
+    patents_row = fetch_one("SELECT COUNT(*) AS n FROM patents")
+    terms_row = fetch_one("SELECT COUNT(*) AS n FROM term_dictionary")
+    dates_row = fetch_one("SELECT MIN(year_month) AS mn, MAX(year_month) AS mx FROM patents WHERE year_month IS NOT NULL")
+    return {
+        "total_patents": int(patents_row["n"]) if patents_row and patents_row["n"] is not None else 0,
+        "total_terms": int(terms_row["n"]) if terms_row and terms_row["n"] is not None else 0,
+        "min_date": dates_row["mn"] if dates_row else None,
+        "max_date": dates_row["mx"] if dates_row else None,
+    }
+

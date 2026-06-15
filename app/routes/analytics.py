@@ -4,7 +4,7 @@ from fastapi import APIRouter, Query
 
 from app.schemas.analytics import RankingItem
 from app.schemas.catalog import TermItem, TopItem
-from app.services.analytics_service import get_ranking
+from app.services.analytics_service import get_ranking, get_db_stats
 from app.services.catalog_service import (
     get_top_classes,
     get_top_relations,
@@ -39,3 +39,9 @@ def read_relations_top(limit: int = 20) -> List[TopItem]:
 @router.get("/search", response_model=List[TermItem])
 def search(q: str, limit: int = 20, offset: int = 0) -> List[TermItem]:
     return search_terms(q=q, limit=limit, offset=offset)
+
+
+@router.get("/stats")
+def read_db_stats() -> dict:
+    return get_db_stats()
+
