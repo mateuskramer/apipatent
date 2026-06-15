@@ -26,3 +26,16 @@ def _get_term_timeseries_rows(term: str) -> List[dict]:
 def get_term_timeseries(term: str) -> List[dict]:
     rows = _get_term_timeseries_rows(term)
     return [{"yearmonth": row["year_month"], "count": int(row["count"])} for row in rows]
+
+
+def get_terms_associations() -> List[dict]:
+    return fetch_all(
+        """
+        SELECT p.id AS patent_id, p.year_month, td.term
+        FROM patent_terms pt
+        JOIN patents p ON pt.patent_id::text = p.id::text
+        JOIN term_dictionary td ON td.id = pt.term_id
+        WHERE p.year_month IS NOT NULL
+        """
+    )
+

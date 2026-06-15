@@ -1,6 +1,8 @@
+import json
 from typing import List, Optional, Tuple
 
 from app.repositories.db import fetch_all
+
 
 
 def _fetch_one(query: str, params: tuple) -> Optional[dict]:
@@ -253,3 +255,17 @@ def search_terms(q: str, limit: int = 20, offset: int = 0) -> List[dict]:
         "SELECT term_id, description, normalized_desc FROM di_term WHERE description ILIKE %s OR normalized_desc ILIKE %s ORDER BY term_id LIMIT %s OFFSET %s",
         (f"%{q}%", f"%{q}%", limit, offset),
     )
+
+
+def get_patents_with_embeddings() -> List[dict]:
+    rows = fetch_all(
+        "SELECT id, title, abstract, year_month, embedding FROM patents WHERE embedding IS NOT NULL AND embedding <> ''"
+    )
+    for r in rows:
+        if isinstance(r["embedding"], str):
+            try:
+                r["embedding"] = json.loads(r["embedding"])
+            except Exception:
+                r["embedding"] = []
+    return rows
+

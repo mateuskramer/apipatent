@@ -12,3 +12,8 @@ class DictionaryItem(BaseModel):
 
     class Config:
         validate_by_name = True
+
+
+class TermCreate(BaseModel):
+    term: str
+

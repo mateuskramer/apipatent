@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
 from app.schemas.prediction import PredictionResponse
-from app.services.prediction_service import get_term_prediction
+from app.services.prediction_service import get_term_prediction, get_term_backtest
 
 router = APIRouter(tags=["predictions"])
 
@@ -12,3 +12,9 @@ def read_term_predictions(term: str) -> PredictionResponse:
     if result is None:
         raise HTTPException(status_code=404, detail=f"Predictions not found for term '{term}'")
     return result
+
+
+@router.get("/backtests/{term}")
+def read_term_backtest(term: str) -> list:
+    return get_term_backtest(term)
+

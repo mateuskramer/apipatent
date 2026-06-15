@@ -29,3 +29,12 @@ def fetch_one(query: str, params: tuple | None = None) -> dict | None:
             cur.execute(query, params)
             row = cur.fetchone()
             return dict(row) if row else None
+
+
+def execute_write(query: str, params: tuple | None = None) -> int:
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params)
+            conn.commit()
+            return cur.rowcount
+

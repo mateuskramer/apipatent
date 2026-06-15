@@ -10,6 +10,8 @@ from app.routes.predictions import router as predictions_router
 from app.routes.relations import router as relations_router
 from app.routes.themes import router as themes_router
 from app.routes.terms import router as terms_router
+from app.routes.patents import router as patents_router
+
 
 app = FastAPI(title="Patent AI Lab API", version="0.1.0")
 app.add_middleware(
@@ -22,7 +24,9 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(terms_router)
+app.include_router(patents_router)
 app.include_router(classes_router)
+
 app.include_router(themes_router)
 app.include_router(relations_router)
 app.include_router(concepts_router)

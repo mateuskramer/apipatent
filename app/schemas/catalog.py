@@ -58,3 +58,19 @@ class TopItem(BaseModel):
     id: int
     name: str
     score: int
+
+
+class PatentItem(BaseModel):
+    id: str
+    title: str
+    abstract: Optional[str] = None
+    year_month: Optional[str] = None
+    embedding: Optional[List[float]] = None
+
+
+class TermOccurrence(BaseModel):
+    patent_id: str
+    year_month: str
+    term: str
+
+

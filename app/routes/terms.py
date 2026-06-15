@@ -3,10 +3,11 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 
 from app.schemas.analytics import CorrelationItem, Indicators, TimeSeriesPoint
-from app.schemas.catalog import TermItem, ConceptItem
+from app.schemas.catalog import TermItem, ConceptItem, TermOccurrence
 from app.services.analytics_service import get_term_correlations, get_term_indicators
 from app.services.catalog_service import get_concepts_by_term, get_term, list_terms
-from app.services.term_service import get_term_timeseries
+from app.services.term_service import get_term_timeseries, get_terms_associations
+
 
 router = APIRouter(tags=["terms"])
 
@@ -14,6 +15,12 @@ router = APIRouter(tags=["terms"])
 @router.get("/terms", response_model=List[TermItem])
 def read_terms(limit: int = 100, offset: int = 0) -> List[TermItem]:
     return list_terms(limit=limit, offset=offset)
+
+
+@router.get("/terms/associations", response_model=List[TermOccurrence])
+def read_terms_associations() -> List[TermOccurrence]:
+    return get_terms_associations()
+
 
 
 @router.get("/terms/{term_id}", response_model=TermItem)

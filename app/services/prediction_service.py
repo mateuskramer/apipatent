@@ -33,3 +33,28 @@ def get_term_prediction(term: str) -> dict:
             for row in prediction_rows
         ],
     }
+
+
+def get_term_backtest(term: str) -> list[dict]:
+    try:
+        rows = fetch_all(
+            """
+            SELECT target_year_month, predicted_count, real_count
+            FROM patent_backtest
+            WHERE term = %s
+            ORDER BY target_year_month
+            """,
+            (term,),
+        )
+        return [
+            {
+                "target_year_month": row["target_year_month"],
+                "predicted_count": float(row["predicted_count"]) if row.get("predicted_count") is not None else None,
+                "real_count": float(row["real_count"]) if row.get("real_count") is not None else None,
+            }
+            for row in rows
+        ]
+    except Exception:
+        # Fallback if the patent_backtest table does not exist
+        return []
+
