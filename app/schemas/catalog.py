@@ -74,3 +74,33 @@ class TermOccurrence(BaseModel):
     term: str
 
 
+class SimilarPatentItem(BaseModel):
+    id: str
+    title: str
+    year_month: Optional[str] = None
+    similarity: float
+
+
+class NetworkNode(BaseModel):
+    id: str
+    layer: int
+
+
+class NetworkEdge(BaseModel):
+    source: str
+    target: str
+    weight: int
+
+
+class TermNetwork(BaseModel):
+    nodes: List[NetworkNode]
+    edges: List[NetworkEdge]
+
+
+class SparseOpportunity(BaseModel):
+    term: str
+    bridge_strength: int
+    common_neighbors_score: float
+
+
+

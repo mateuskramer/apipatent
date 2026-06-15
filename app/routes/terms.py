@@ -3,10 +3,10 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 
 from app.schemas.analytics import CorrelationItem, Indicators, TimeSeriesPoint
-from app.schemas.catalog import TermItem, ConceptItem, TermOccurrence
+from app.schemas.catalog import TermItem, ConceptItem, TermOccurrence, TermNetwork, SparseOpportunity
 from app.services.analytics_service import get_term_correlations, get_term_indicators
 from app.services.catalog_service import get_concepts_by_term, get_term, list_terms
-from app.services.term_service import get_term_timeseries, get_terms_associations
+from app.services.term_service import get_term_timeseries, get_terms_associations, get_term_network, get_sparse_opportunities_for_term
 
 
 router = APIRouter(tags=["terms"])
@@ -57,3 +57,14 @@ def read_term_indicators(term: str) -> Indicators:
     if result is None:
         raise HTTPException(status_code=404, detail=f"Term '{term}' indicators not found")
     return result
+
+
+@router.get("/terms/{term}/network", response_model=TermNetwork)
+def read_term_network(term: str, depth: int = 3, limit: int = 5) -> TermNetwork:
+    return get_term_network(term, depth=depth, top_n=limit)
+
+
+@router.get("/terms/{term}/opportunities", response_model=List[SparseOpportunity])
+def read_term_opportunities(term: str, limit: int = 20) -> List[SparseOpportunity]:
+    return get_sparse_opportunities_for_term(term, top_n=limit)
+

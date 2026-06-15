@@ -269,3 +269,72 @@ def get_patents_with_embeddings() -> List[dict]:
                 r["embedding"] = []
     return rows
 
+
+def get_similar_patents(patent_id: str, top_n: int = 10) -> List[dict]:
+    import numpy as np
+    patents = get_patents_with_embeddings()
+    if not patents:
+        return []
+    
+    # Find the target patent index
+    target_idx = None
+    for idx, p in enumerate(patents):
+        if p["id"] == patent_id:
+            target_idx = idx
+            break
+            
+    if target_idx is None:
+        return []
+        
+    # Stack embeddings
+    try:
+        emb_list = [np.array(p["embedding"], dtype=np.float32) for p in patents]
+        EMB = np.vstack(emb_list)
+    except Exception as e:
+        # In case shapes are mismatching
+        if not emb_list:
+            return []
+        first_shape = emb_list[0].shape
+        valid_indices = [i for i, emb in enumerate(emb_list) if emb.shape == first_shape]
+        patents = [patents[i] for i in valid_indices]
+        EMB = np.vstack([emb_list[i] for i in valid_indices])
+        # Find new target index
+        target_idx = None
+        for idx, p in enumerate(patents):
+            if p["id"] == patent_id:
+                target_idx = idx
+                break
+        if target_idx is None:
+            return []
+
+    target_vec = EMB[target_idx]
+    
+    # Cosine similarity using numpy: dot_product / (norm_a * norm_b)
+    dot = np.dot(EMB, target_vec)
+    norm_target = np.linalg.norm(target_vec)
+    norm_all = np.linalg.norm(EMB, axis=1)
+    
+    # Avoid division by zero
+    norm_all[norm_all == 0] = 1.0
+    if norm_target == 0:
+        norm_target = 1.0
+        
+    sims = dot / (norm_target * norm_all)
+    
+    # Construct results
+    results = []
+    for idx, p in enumerate(patents):
+        if idx == target_idx:
+            continue
+        results.append({
+            "id": p["id"],
+            "title": p["title"],
+            "year_month": p["year_month"],
+            "similarity": float(sims[idx])
+        })
+        
+    # Sort and return top_n
+    results.sort(key=lambda x: x["similarity"], reverse=True)
+    return results[:top_n]
+
+
