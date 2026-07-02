@@ -1,13 +1,14 @@
 # Tutorial Prático de Consumo da API: Patent AI Lab
 
-Este tutorial ensina como consumir a API do **Patent AI Lab** passo a passo. Vamos explorar como coletar dados brutos, realizar cálculos analíticos em memória usando **Pandas**, utilizar os endpoints de inteligência preditiva e gerenciar sessões de chats e dashboards.
+Este tutorial ensina como consumir a API do **Patent AI Lab** passo a passo. Vamos explorar como coletar dados brutos, realizar cálculos analíticos em memória usando **Pandas** e utilizar os endpoints de inteligência preditiva.
 
 ---
 
 ## 1. Configuração e Autenticação
 
 A API possui duas categorias de rotas:
-1. **Rotas Públicas (Sem autenticação)**: Leitura de patentes, estatísticas, chat e gráficos de dashboards.
+1. **Rotas Públicas (Sem autenticação)**: Leitura de patentes, estatísticas e indicadores.
+
 2. **Rotas Protegidas (Exigem chave de API)**: Alterações e consultas ao dicionário de termos tecnológico.
 
 As rotas protegidas exigem o envio da chave no cabeçalho HTTP `X-API-Key`.
@@ -179,63 +180,4 @@ if r.status_code == 200:
     print(f"  - Fusão Semântica (Co-termos): {ind['fusion']}")
 ```
 
----
 
-## 4. Tutorial Prático 3: Gerenciamento de Sessões de Dashboard e Chat
-
-A API permite gerenciar as sessões dinâmicas dos usuários diretamente nos endpoints para manter o cliente sem dependência de persistência local.
-
-### Salvar e Carregar layouts de Dashboard
-Quando o usuário cria ou altera um layout de dashboard, você pode persistir o JSON de especificação na API:
-
-```python
-import uuid
-
-session_id = str(uuid.uuid4())
-layout_spec = {
-    "title": "Monitoramento de Baterias Automotivas",
-    "charts": [
-        {
-            "id": "chart_1",
-            "type": "line",
-            "terms": ["battery", "ev"],
-            "time_range": "24m",
-            "show_trend": True
-        }
-    ]
-}
-
-# 1. Salvar dashboard na API
-payload = {
-    "session_id": session_id,
-    "title": layout_spec["title"],
-    "spec": layout_spec
-}
-r_save = requests.post(f"{API_BASE_URL}/dashboards", json=payload)
-if r_save.status_code == 200:
-    print(f"Dashboard {session_id} salvo com sucesso.")
-
-# 2. Carregar o dashboard de volta
-r_load = requests.get(f"{API_BASE_URL}/dashboards/{session_id}")
-if r_load.status_code == 200:
-    saved_dashboard = r_load.json()
-    print(f"Dashboard carregado. Título: {saved_dashboard['title']}")
-    print(f"Configurações: {saved_dashboard['spec']}")
-```
-
-### Fixar (Pin) e Listar Pinned na Galeria
-```python
-# Fixar na página inicial da galeria
-requests.put(f"{API_BASE_URL}/dashboards/{session_id}/pin")
-
-# Obter todos os fixados da galeria
-r_pinned = requests.get(f"{API_BASE_URL}/dashboards/pinned")
-print(f"Quantidade de dashboards destacados: {len(r_pinned.json())}")
-```
-
-### Excluir Dashboard
-```python
-r_del = requests.delete(f"{API_BASE_URL}/dashboards/{session_id}")
-if r_del.status_code == 200:
-    print("Dashboard excluído.")
-```
