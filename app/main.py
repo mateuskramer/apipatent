@@ -12,6 +12,7 @@ from app.routes.themes import router as themes_router
 from app.routes.terms import router as terms_router
 from app.routes.patents import router as patents_router
 from app.routes.chat import router as chat_router
+from app.routes.dashboard import router as dashboard_router
 
 
 
@@ -39,4 +40,6 @@ app.include_router(analytics_router)
 app.include_router(predictions_router)
 app.include_router(dictionary_router)
 app.include_router(chat_router)
+app.include_router(dashboard_router)
+
 
